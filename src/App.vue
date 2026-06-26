@@ -20,7 +20,8 @@
       </div>
 
       <div class="header-right">
-        <RouterLink to="/" class="upload-btn">Upload</RouterLink>
+        <!-- Hier war die Änderung: to="/upload" -->
+        <RouterLink to="/upload" class="upload-btn">Upload</RouterLink>
         <RouterLink to="/login" class="login-btn">Login</RouterLink>
       </div>
     </header>
