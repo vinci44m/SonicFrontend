@@ -1,18 +1,18 @@
 <template>
-  <div class="upload-page">
-    <h1 class="content-title">Video hochladen</h1>
-    <form @submit.prevent="uploadVideo" class="upload-form">
+  <div class="upload-wrapper">
+    <div class="upload-card">
+      <h2>Video hochladen</h2>
       
-      <label for="title">Titel:</label>
-      <input type="text" v-model="title" id="title" placeholder="Wie heißt dein Video?" required class="form-input" />
+      <label>Titel:</label>
+      <input v-model="title" placeholder="Wie heißt dein Video?" />
+
+      <label>Videodatei:</label>
+      <input type="file" @change="handleFileUpload" accept="video/*" />
+
+      <button @click="uploadVideo">Jetzt hochladen</button>
       
-      <label for="file">Videodatei:</label>
-      <input type="file" @change="handleFileChange" accept="video/mp4" required class="form-input" />
-      
-      <button type="submit" class="upload-btn" :disabled="uploading">
-        {{ uploading ? 'Lädt hoch...' : 'Jetzt hochladen' }}
-      </button>
-    </form>
+      <p v-if="message" class="message">{{ message }}</p>
+    </div>
   </div>
 </template>
 
@@ -20,43 +20,100 @@
 import { ref } from 'vue'
 
 const title = ref('')
-const file = ref(null)
-const uploading = ref(false)
+const videoFile = ref(null)
+const message = ref('')
 
-const handleFileChange = (e) => {
-  file.value = e.target.files[0]
+const handleFileUpload = (event) => {
+  videoFile.value = event.target.files[0]
 }
 
 const uploadVideo = async () => {
-  uploading.value = true
+  if (!title.value || !videoFile.value) {
+    message.value = 'Bitte Titel und Datei auswählen!'
+    return
+  }
+
   const formData = new FormData()
   formData.append('title', title.value)
-  formData.append('video', file.value)
+  formData.append('video', videoFile.value)
 
   try {
     const response = await fetch('http://127.0.0.1:8000/api/videos', {
       method: 'POST',
-      body: formData
+      body: formData,
     })
-    
+
     if (response.ok) {
-      alert('Video erfolgreich hochgeladen!')
+      message.value = 'Erfolg! Das Video wurde hochgeladen.'
       title.value = ''
     } else {
-      alert('Fehler beim Upload. Prüfe das Backend.')
+      message.value = 'Fehler beim Hochladen.'
     }
   } catch (error) {
-    console.error("Upload fehlgeschlagen:", error)
-  } finally {
-    uploading.value = false
+    message.value = 'Verbindungsfehler.'
+    console.error(error)
   }
 }
 </script>
 
 <style scoped>
-.upload-page { max-width: 600px; margin: 40px auto; padding: 20px; color: white; }
-.upload-form { display: flex; flex-direction: column; gap: 15px; background: #0f172a; padding: 30px; border-radius: 12px; }
-.form-input { padding: 12px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: white; }
-.upload-btn { background: #3b82f6; color: white; border: none; padding: 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-.upload-btn:hover { background: #2563eb; }
+.upload-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 40px;
+}
+
+.upload-card {
+  background: #111b2b; /* Dunkles Design passend zu deinem Screenshot */
+  padding: 30px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 600px;
+  color: white;
+}
+
+h2 {
+  margin-bottom: 20px;
+  border-bottom: 1px solid #2d3748;
+  padding-bottom: 10px;
+}
+
+label {
+  display: block;
+  margin: 15px 0 5px 0;
+  font-weight: bold;
+}
+
+input[type="text"], 
+input[type="file"] {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background: #1a2538;
+  border: 1px solid #2d3748;
+  color: white;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  background: #2563eb; /* Blau wie im Screenshot */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 20px;
+  font-weight: bold;
+}
+
+button:hover {
+  background: #1d4ed8;
+}
+
+.message {
+  margin-top: 15px;
+  text-align: center;
+}
 </style>
