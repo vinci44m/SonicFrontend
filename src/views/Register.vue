@@ -33,35 +33,41 @@ const regEmail = ref('')
 const regPassword = ref('')
 const regConfirm = ref('')
 const errorMessage = ref('')
-const successMessage = ref('')
 
-const handleRegister = () => {
+const handleRegister = async () => {
   errorMessage.value = ''
-  successMessage.value = ''
 
-  if (regPassword.value.length < 4) {
-    errorMessage.value = 'Das Passwort muss mindestens 4 Zeichen lang sein.'
-    return
-  }
   if (regPassword.value !== regConfirm.value) {
     errorMessage.value = 'Die Passwörter stimmen nicht überein.'
     return
   }
 
-  const users = JSON.parse(localStorage.getItem('registeredUsers')) || []
-  if (users.some(u => u.email === regEmail.value)) {
-    errorMessage.value = 'Diese E-Mail ist bereits registriert.'
-    return
+  try {
+    // Hier schickt das Frontend die Daten an dein Laravel-Backend
+    const response = await fetch('http://127.0.0.1:8000/api/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        email: regEmail.value,
+        password: regPassword.value
+      })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      errorMessage.value = data.error || 'Fehler bei der Registrierung.'
+      return
+    }
+
+    alert('Erfolg! Konto wurde erstellt.')
+    router.push('/login')
+
+  } catch (error) {
+    errorMessage.value = 'Verbindung zum Server fehlgeschlagen.'
   }
-
-  users.push({ email: regEmail.value, password: regPassword.value })
-  localStorage.setItem('registeredUsers', JSON.stringify(users))
-
-  successMessage.value = 'Konto erfolgreich erstellt! Du wirst zum Login weitergeleitet...'
-  regEmail.value = ''
-  regPassword.value = ''
-  regConfirm.value = ''
-
-  setTimeout(() => router.push('/login'), 2000)
 }
 </script>

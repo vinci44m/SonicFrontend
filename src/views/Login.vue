@@ -31,14 +31,34 @@ const email = ref('')
 const password = ref('')
 const errorMessage = ref('')
 
-const handleLogin = () => {
+const handleLogin = async () => {
   errorMessage.value = ''
-  const users = JSON.parse(localStorage.getItem('registeredUsers')) || []
-  const found = users.find(u => u.email === email.value && u.password === password.value)
-  if (found) {
-    router.push('/')
-  } else {
-    errorMessage.value = 'Ungültige E-Mail oder falsches Passwort.'
+
+  try {
+    const response = await fetch('http://127.0.0.1:8000/api/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        email: email.value,
+        password: password.value
+      })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      errorMessage.value = data.error || 'Login fehlgeschlagen.'
+      return
+    }
+
+    alert('Erfolg! Du bist eingeloggt.')
+    router.push('/') // Zurück zur Startseite
+
+  } catch (error) {
+    errorMessage.value = 'Server nicht erreichbar.'
   }
 }
 </script>
