@@ -67,8 +67,15 @@
         <button class="close-modal-btn" @click="closeVideo">✕</button>
         
         <div class="modal-video-player" :class="{ 'is-fullscreen': isFullscreen }">
-          <img :src="activeVideo.thumbnail" alt="Video playing" />
-          <div class="play-overlay">▶ Simulated Video Player</div>
+          <video 
+            controls
+            autoplay
+            preload="auto"
+            :src="activeVideo.file_path"
+            style="width: 100%; height: 100%; background: black;"
+          >
+            Dein Browser unterstützt kein Video.
+          </video>
           
           <button class="fullscreen-toggle-btn" @click="toggleFullscreen">
             {{ isFullscreen ? '🗗 Fullscreen verlassen' : '🗖 Fullscreen' }}
@@ -112,7 +119,7 @@
 </template>
 
 <script setup>
-import { ref, computed, inject } from 'vue'
+import { ref, computed, inject, onMounted } from 'vue'
 
 // Suchbegriff live aus App.vue abfangen
 const searchQuery = inject('searchQuery', ref(''))
@@ -177,6 +184,33 @@ const hasMore = computed(() => {
 
 const loadMore = () => { visibleCount.value += 4 }
 
+onMounted(async () => {
+  try {
+    const response = await fetch('http://127.0.0.1:8000/api/videos')
+    const data = await response.json()
+    
+    // Wir überschreiben die Testdaten mit den echten Daten aus der Datenbank
+    allVideos.value = data.map(v => ({
+      id: v.id,
+      title: v.title,
+      thumbnail: v.thumbnail_path 
+        ? 'http://127.0.0.1:8000' + v.thumbnail_path.replace(/\\/g, '/') 
+        : '/placeholder.jpg',
+      file_path: v.file_path.startsWith('/storage') 
+      ? 'http://127.0.0.1:8000' + v.file_path 
+      : 'http://127.0.0.1:8000/storage/' + v.file_path,
+      channelName: 'Dein Kanal',
+      accuracy: 100,
+      views: '0 Aufrufe',
+      date: v.created_at ? new Date(v.created_at).toLocaleDateString('de-DE') : '',
+      semester: v.semester || '1. Semester',
+      module: v.module || 'Programmierung 1'
+    }))
+  } catch (error) {
+    console.error("Fehler beim Laden der Videos:", error)
+  }
+})
+
 // Logik für das Detail-Fenster & Kommentare
 const activeVideo = ref(null)
 const newCommentText = ref('')
@@ -184,6 +218,7 @@ const comments = ref([])
 const isFullscreen = ref(false) // Fullscreen Variable hier sauber deklariert
 
 const openVideo = (video) => {
+  console.log("Klick erkannt für:", video.title);
   activeVideo.value = video
   comments.value = [
     { id: 1, user: "Studi_99", text: `Richtig gutes Video zu ${video.module}! Das hat mir für die Prüfung extrem geholfen.`, time: "vor 1 Std." },
@@ -222,6 +257,10 @@ const toggleFullscreen = () => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.thumbnail-wrapper img {
+  pointer-events: none;
 }
 
 .semester-filter, .module-filter {
