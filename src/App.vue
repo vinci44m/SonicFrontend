@@ -57,6 +57,10 @@
             </RouterLink>
           </li>
         </ul>
+        
+        <router-link to="/konto" class="sidebar-link">
+          <span>👤 Mein Konto</span>
+        </router-link>
 
         <div class="report-section">
           <button class="report-toggle-btn" @click="isReportOpen = !isReportOpen">

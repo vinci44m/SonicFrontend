@@ -38,10 +38,10 @@
     </div>
 
     <div v-if="videoList.length > 0" class="video-grid">
-      <article class="video-container" v-for="video in videoList" :key="video.id">
-        <a :href="video.link">
+      <article class="video-container" v-for="video in videoList" :key="video.id" @click="openVideo(video)" style="cursor: pointer;">
+        <div class="thumbnail-wrapper">
           <img :src="video.thumbnail" class="video" />
-        </a>
+        </div>
         <div class="video-info">
           <p class="video-title">{{ video.title }}</p>
           <p class="video-channel-name">{{ video.channelName }}</p>
@@ -61,6 +61,53 @@
     <div class="button-container" v-if="hasMore">
       <button class="loadMore-btn" @click="loadMore">Mehr Videos laden</button>
     </div>
+
+    <div v-if="activeVideo" class="video-modal-backdrop" @click.self="closeVideo">
+      <div class="video-modal-content">
+        <button class="close-modal-btn" @click="closeVideo">✕</button>
+        
+        <div class="modal-video-player" :class="{ 'is-fullscreen': isFullscreen }">
+          <img :src="activeVideo.thumbnail" alt="Video playing" />
+          <div class="play-overlay">▶ Simulated Video Player</div>
+          
+          <button class="fullscreen-toggle-btn" @click="toggleFullscreen">
+            {{ isFullscreen ? '🗗 Fullscreen verlassen' : '🗖 Fullscreen' }}
+          </button>
+        </div>
+
+        <div class="modal-video-details" v-if="!isFullscreen">
+          <h2>{{ activeVideo.title }}</h2>
+          <p class="modal-channel">{{ activeVideo.channelName }} • <span class="module-tag">{{ activeVideo.module }}</span></p>
+          <p class="modal-meta">{{ activeVideo.views }} • {{ activeVideo.date }} • Passgenauigkeit: {{ activeVideo.accuracy }}%</p>
+        </div>
+
+        <div class="comments-section">
+          <h3>💬 Kommentare ({{ comments.length }})</h3>
+          
+          <div class="comment-input-box">
+            <input 
+              v-model="newCommentText" 
+              placeholder="Schreibe einen öffentlichen Kommentar..." 
+              @keyup.enter="addComment"
+            />
+            <button @click="addComment">Posten</button>
+          </div>
+
+          <div class="comments-list">
+            <div v-for="comment in comments" :key="comment.id" class="comment-item">
+              <div class="comment-avatar">👤</div>
+              <div class="comment-body">
+                <p class="comment-user">{{ comment.user }} <span class="comment-time">{{ comment.time }}</span></p>
+                <p class="comment-text">{{ comment.text }}</p>
+              </div>
+            </div>
+            <p v-if="comments.length === 0" class="no-comments">Noch keine Kommentare. Schreib den ersten!</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -70,7 +117,7 @@ import { ref, computed, inject } from 'vue'
 // Suchbegriff live aus App.vue abfangen
 const searchQuery = inject('searchQuery', ref(''))
 
-// NEU: Datenstruktur für Semester und deren Module
+// Datenstruktur für Semester und deren Module
 const semesters = ref(['Alle', '1. Semester', '2. Semester', '3. Semester'])
 
 const modulesBySemester = {
@@ -82,19 +129,17 @@ const modulesBySemester = {
 const selectedSemester = ref('Alle')
 const selectedModule = ref('Alle')
 
-// Wenn ein Semester geklickt wird, setzen wir das gewählte Modul zurück
 const selectSemester = (sem) => {
   selectedSemester.value = sem
   selectedModule.value = 'Alle'
 }
 
-// Berechnet, welche Module für das gewählte Semester angezeigt werden sollen
 const availableModules = computed(() => {
   if (selectedSemester.value === 'Alle') return []
   return modulesBySemester[selectedSemester.value] || []
 })
 
-// Eure erweiterten Video-Testdaten (jetzt mit Semester und Modul verknüpft!)
+// Eure erweiterten Video-Testdaten
 const allVideos = ref([
   { id: 1, title: "Beispielvideo 1", channelName: "Kanal 1", accuracy: 85, views: "1M Aufrufe",   date: "vor 1 Monat",   thumbnail: "../img/placeholder-image.jpg", link: "#", semester: "1. Semester", module: "Programmierung 1" },
   { id: 2, title: "Beispielvideo 2", channelName: "Kanal 2", accuracy: 90, views: "500K Aufrufe", date: "vor 2 Wochen",  thumbnail: "../img/placeholder-image.jpg", link: "#", semester: "1. Semester", module: "Mathematik 1" },
@@ -109,9 +154,7 @@ const allVideos = ref([
 
 const visibleCount = ref(4)
 
-// Aktualisierte Filterlogik: Suchleiste, Semester UND Module arbeiten zusammen!
 const videoList = computed(() => {
-  // Wenn in der Suchleiste getippt wird, ignorieren wir die Semester-Filter vorübergehend
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase()
     return allVideos.value.filter(video => 
@@ -120,7 +163,6 @@ const videoList = computed(() => {
     )
   }
 
-  // Ansonsten filtern wir nach Semester und Modul
   return allVideos.value.filter(video => {
     const matchSemester = selectedSemester.value === 'Alle' || video.semester === selectedSemester.value
     const matchModule = selectedModule.value === 'Alle' || video.module === selectedModule.value
@@ -134,10 +176,47 @@ const hasMore = computed(() => {
 })
 
 const loadMore = () => { visibleCount.value += 4 }
+
+// Logik für das Detail-Fenster & Kommentare
+const activeVideo = ref(null)
+const newCommentText = ref('')
+const comments = ref([])
+const isFullscreen = ref(false) // Fullscreen Variable hier sauber deklariert
+
+const openVideo = (video) => {
+  activeVideo.value = video
+  comments.value = [
+    { id: 1, user: "Studi_99", text: `Richtig gutes Video zu ${video.module}! Das hat mir für die Prüfung extrem geholfen.`, time: "vor 1 Std." },
+    { id: 2, user: "Alex_Code", text: "Kann mir jemand erklären, was der Dozent ab der Mitte des Videos meint?", time: "vor 30 Min." }
+  ]
+}
+
+// Hier ist die Schließen-Logik jetzt vollkommen fehlerfrei integriert:
+const closeVideo = () => {
+  isFullscreen.value = false
+  activeVideo.value = null
+  newCommentText.value = ''
+}
+
+const addComment = () => {
+  if (newCommentText.value.trim() === '') return
+  
+  comments.value.unshift({
+    id: Date.now(),
+    user: "Du (Eingeloggt)",
+    text: newCommentText.value,
+    time: "Gerade eben"
+  })
+  
+  newCommentText.value = ''
+}
+
+const toggleFullscreen = () => {
+  isFullscreen.value = !isFullscreen.value
+}
 </script>
 
 <style scoped>
-/* Schicke Filter-Buttons */
 .filter-wrapper {
   margin-bottom: 24px;
   display: flex;
@@ -195,5 +274,155 @@ const loadMore = () => { visibleCount.value += 4 }
   border-radius: 8px;
   color: var(--text-muted, #64748b);
   margin-top: 20px;
+}
+
+.video-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.video-modal-content {
+  background-color: var(--card-bg, #0f172a);
+  border: 1px solid var(--border-color, #1a3a5c);
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  border-radius: 12px;
+  overflow-y: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.close-modal-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.2s;
+}
+.close-modal-btn:hover { background: #ef4444; }
+
+.modal-video-player {
+  position: relative;
+  width: 100%;
+  background-color: black;
+  height: 400px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.modal-video-player img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.6;
+}
+.play-overlay {
+  position: absolute;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+  background: rgba(30, 144, 255, 0.8);
+  padding: 12px 24px;
+  border-radius: 30px;
+}
+
+.modal-video-details {
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color, #1a3a5c);
+}
+.modal-video-details h2 { margin: 0 0 8px 0; color: var(--text-title, #fff); }
+.modal-channel { color: var(--text-muted, #64748b); margin-bottom: 4px; }
+.modal-meta { font-size: 0.9rem; color: var(--text-muted, #64748b); }
+
+.comments-section { padding: 20px; }
+.comment-input-box {
+  display: flex;
+  gap: 10px;
+  margin: 15px 0 25px 0;
+}
+.comment-input-box input {
+  flex: 1;
+  background-color: var(--bg-color, #060f1a);
+  border: 1px solid var(--border-color, #1a3a5c);
+  color: var(--text-color, #e0e0e0);
+  padding: 12px;
+  border-radius: 6px;
+  outline: none;
+}
+.comment-input-box input:focus { border-color: var(--primary-color, #1e90ff); }
+.comment-input-box button {
+  background-color: var(--primary-color, #1e90ff);
+  color: white;
+  border: none;
+  padding: 0 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.comments-list { display: flex; flex-direction: column; gap: 16px; }
+.comment-item { display: flex; gap: 12px; align-items: flex-start; }
+.comment-avatar { font-size: 1.5rem; }
+.comment-user { font-weight: bold; font-size: 0.9rem; margin: 0 0 4px 0; }
+.comment-time { font-weight: normal; font-size: 0.8rem; color: #64748b; margin-left: 6px; }
+.comment-text { margin: 0; color: var(--text-color, #e0e0e0); font-size: 0.95rem; }
+.no-comments { text-align: center; color: #64748b; font-style: italic; }
+
+.fullscreen-toggle-btn {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  z-index: 15;
+}
+
+.fullscreen-toggle-btn:hover {
+  background: var(--primary-color, #1e90ff);
+  border-color: var(--primary-color, #1e90ff);
+}
+
+.modal-video-player.is-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 3000;
+  background-color: black;
+}
+
+.modal-video-player.is-fullscreen img {
+  opacity: 0.8;
+}
+
+.modal-video-player.is-fullscreen ~ .close-modal-btn {
+  display: none;
 }
 </style>

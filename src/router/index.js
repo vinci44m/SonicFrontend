@@ -6,6 +6,8 @@ import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Live from '../views/Live.vue'
 import Upload from '../views/Upload.vue' // 1. Hier importieren
+import Konto from '../views/Konto.vue'
+
 
 const routes = [
   { path: '/',            component: Home },
@@ -15,6 +17,7 @@ const routes = [
   { path: '/register',    component: Register },
   { path: '/live',        component: Live },
   { path: '/upload',      component: Upload }, // 2. Hier den Pfad hinzufügen
+  { path: '/konto',       component: Konto }, // 3. Hier den Pfad hinzufügen
 ]
 
 const router = createRouter({
@@ -23,3 +26,4 @@ const router = createRouter({
 })
 
 export default router
+
