@@ -38,7 +38,7 @@ const uploadVideo = async () => {
   formData.append('video', videoFile.value)
 
   try {
-    const response = await fetch('http://127.0.0.1:8000/api/videos', {
+    const response = await fetch('https://sonicbackend-production.up.railway.app/api/videos', {
       method: 'POST',
       body: formData,
     })

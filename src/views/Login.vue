@@ -35,7 +35,8 @@ const handleLogin = async () => {
   errorMessage.value = ''
 
   try {
-    const response = await fetch('http://127.0.0.1:8000/api/login', {
+    // Da du Script Setup verwendest, rufen wir die API über die globale Eigenschaft auf:
+    const response = await fetch('https://sonicbackend-production.up.railway.app/api/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

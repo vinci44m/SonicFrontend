@@ -29,25 +29,22 @@
 </template>
 
 <script setup>
-import { ref, computed, inject } from 'vue'
+import { ref, computed, inject, onMounted } from 'vue'
 
-// Suchbegriff live aus der App.vue abfangen
 const searchQuery = inject('searchQuery', ref(''))
+const allStreams = ref([]) // Wird vom Server befüllt
 
-// Lokale Testdaten für die Streams (passend zu eurem Uniprojekt)
-const allStreams = ref([
-  { id: 1,  title: "BeispielStrem 1",  channelName: "Kanal 1",  accuracy: 85, views: "1M Aufrufe",   date: "vor 1 Monat",   thumbnail: "../img/placeholder-image.jpg", link: "#" },
-  { id: 2,  title: "BeispielStrem 2",  channelName: "Kanal 2",  accuracy: 90, views: "500K Aufrufe", date: "vor 2 Wochen",  thumbnail: "../img/placeholder-image.jpg", link: "#" },
-  { id: 3,  title: "BeispielStrem 3",  channelName: "Kanal 3",  accuracy: 75, views: "200K Aufrufe", date: "vor 3 Tagen",   thumbnail: "../img/placeholder-image.jpg", link: "#" },
-  { id: 4,  title: "BeispielStrem 4",  channelName: "Kanal 4",  accuracy: 95, views: "1.5M Aufrufe", date: "vor 1 Woche",   thumbnail: "../img/placeholder-image.jpg", link: "#" },
-  { id: 5,  title: "BeispielStrem 5",  channelName: "Kanal 5",  accuracy: 80, views: "300K Aufrufe", date: "vor 2 Monaten", thumbnail: "../img/placeholder-image.jpg", link: "#" },
-  { id: 6,  title: "BeispielStrem 6",  channelName: "Kanal 6",  accuracy: 85, views: "1M Aufrufe",   date: "vor 1 Monat",   thumbnail: "../img/placeholder-image.jpg", link: "#" },
-  { id: 7,  title: "BeispielStrem 7",  channelName: "Kanal 7",  accuracy: 90, views: "500K Aufrufe", date: "vor 2 Wochen",  thumbnail: "../img/placeholder-image.jpg", link: "#" },
-  { id: 8,  title: "BeispielStrem 8",  channelName: "Kanal 8",  accuracy: 75, views: "200K Aufrufe", date: "vor 3 Tagen",   thumbnail: "../img/placeholder-image.jpg", link: "#" },
-  { id: 9,  title: "BeispielStrem 9",  channelName: "Kanal 9",  accuracy: 95, views: "1.5M Aufrufe", date: "vor 1 Woche",   thumbnail: "../img/placeholder-image.jpg", link: "#" }
-])
+onMounted(async () => {
+  try {
+    const response = await fetch('https://sonicbackend-production.up.railway.app/api/streams')
+    if (response.ok) {
+      allStreams.value = await response.json()
+    }
+  } catch (error) {
+    console.error('Fehler beim Laden der Live-Streams:', error)
+  }
+})
 
-// Filtert die Streams live anhand der Suchleiste
 const liveList = computed(() => {
   if (!searchQuery.value.trim()) {
     return allStreams.value

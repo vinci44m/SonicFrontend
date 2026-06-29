@@ -44,7 +44,7 @@ const handleRegister = async () => {
 
   try {
     // Hier schickt das Frontend die Daten an dein Laravel-Backend
-    const response = await fetch('http://127.0.0.1:8000/api/register', {
+    const response = await fetch('https://sonicbackend-production.up.railway.app/api/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
