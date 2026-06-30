@@ -48,41 +48,61 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed, inject, onMounted } from 'vue'
 
+const searchQuery = inject('searchQuery', ref(''))
+
+// Reaktive Listen, die mit Server-Daten befüllt werden
 const allVideos = ref([])
+const allPosts = ref([])
 const visibleCount = ref(4)
 
-// Daten abrufen
+// Holt die Daten live von Railway
 onMounted(async () => {
   try {
-    const response = await fetch('http://127.0.0.1:8000/api/videos')
-    const data = await response.json()
+    // 1. Videos laden
+    const videoResponse = await fetch('https://sonicbackend-production.up.railway.app/api/videos')
+    if (videoResponse.ok) {
+      allVideos.value = await videoResponse.json()
+    }
     
-    allVideos.value = data.map(v => ({
-      id: v.id,
-      title: v.title,
-      thumbnail: v.thumbnail_path || '/placeholder.jpg',
-      link: '#',
-      channelName: 'Dein Kanal',
-      accuracy: 100,
-      views: '0 Aufrufe',
-      date: v.created_at ? new Date(v.created_at).toLocaleDateString('de-DE') : ''
-    }))
+    // 2. Beiträge laden
+    const postsResponse = await fetch('https://sonicbackend-production.up.railway.app/api/posts')
+    if (postsResponse.ok) {
+      allPosts.value = await postsResponse.json()
+    }
   } catch (error) {
-    console.error("Fehler beim Laden:", error)
+    console.error('Fehler beim Laden der Startseiten-Daten:', error)
   }
 })
 
-const videoList = computed(() => allVideos.value.slice(0, visibleCount.value))
+// Filtern der geladenen Videos per Suchleiste
+const videoList = computed(() => {
+  let result = allVideos.value
+  if (searchQuery.value.trim() !== '') {
+    const query = searchQuery.value.toLowerCase()
+    result = result.filter(v => v.title.toLowerCase().includes(query))
+  }
+  return result.slice(0, visibleCount.value)
+})
 
-// Posts Logik
-const posts = ref([
-  { id: 1, title: 'Wie erkläre ich Rekursion am besten?', tags: ['Informatik'], author: 'max_mustermann', date: '14. Jun 2026', votes: 12, comments: 5 },
-  { id: 2, title: 'Tipps für die IT-Sicherheit Klausur?', tags: ['IT-Sicherheit'], author: 'coder42', date: '13. Jun 2026', votes: 7, comments: 3 },
-  { id: 3, title: 'Welche Mathe-Formelsammlung ist empfehlenswert?', tags: ['Mathe'], author: 'studihelp', date: '12. Jun 2026', votes: 4, comments: 8 },
-])
-const vote = (post, val) => { post.votes += val }
+// Filtern der geladenen Posts per Suchleiste
+const posts = computed(() => {
+  if (searchQuery.value.trim() !== '') {
+    const query = searchQuery.value.toLowerCase()
+    return allPosts.value.filter(post => 
+      post.title.toLowerCase().includes(query) ||
+      post.author.toLowerCase().includes(query)
+    )
+  }
+  return allPosts.value
+})
+
+const vote = async (post, val) => {
+  post.votes += val
+  // Optional: Schicke den neuen Vote per PUT/POST ans Backend
+  // await fetch(`https://sonicbackend-production.up.railway.app/api/posts/${post.id}/vote`, { method: 'POST', body: JSON.stringify({ vote: val }) })
+}
 </script>
 
 <style scoped>

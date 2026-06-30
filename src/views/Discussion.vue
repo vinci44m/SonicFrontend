@@ -62,35 +62,34 @@
 </template>
 
 <script setup>
-import { ref, computed, inject } from 'vue'
+import { ref, computed, inject, onMounted } from 'vue'
 
-// DIE VUE-MAGIE: Wir holen uns die searchQuery, die in App.vue via provide bereitgestellt wird
 const searchQuery = inject('searchQuery', ref(''))
 
-const sortBy = ref('votes')
+const categories = ['Allgemein', 'Prüfungen', 'Projektgruppen', 'JavaScript', 'Laravel']
 const activeCategory = ref('Alle')
-const categories = ref(['Vue', 'Laravel', 'CSS', 'Python', 'JavaScript'])
+const sortBy = ref('votes')
 
-// Eure Beitragsdaten
-const allPosts = ref([
-  { id: 1, title: "Vue 3 Composition API vs Options API", author: "vue_dev",    tags: ["Vue", "JavaScript"],    votes: 42, comments: 12, date: "vor 2 Stunden" },
-  { id: 2, title: "Laravel 11 neue Features im Überblick", author: "backend_guy", tags: ["Laravel"],              votes: 28, comments: 5,  date: "vor 5 Stunden" },
-  { id: 3, title: "CSS Grid vs Flexbox - Wann nutzt man was?", author: "css_queen",   tags: ["CSS"],                  votes: 54, comments: 18, date: "vor 3 Tagen" },
-  { id: 4, title: "Wie lerne ich am besten programmieren als Anfänger?", author: "starter2024", tags: ["Allgemein"],              votes: 89, comments: 45, date: "vor 4 Tagen" },
-  { id: 5, title: "Python Listen und Dictionaries erklärt", author: "pydev",       tags: ["Python"],                 votes: 33, comments: 9,  date: "vor 5 Tagen" },
-  { id: 6, title: "Warum sollte ich Vue.js lernen?",                  author: "vuefan",      tags: ["JavaScript"],             votes: 21, comments: 14, date: "vor 1 Woche" },
-])
+const allPosts = ref([]) // Holt sich die Beiträge gleich live
 
-// Kombinierte Filter- und Sortierlogik
+onMounted(async () => {
+  try {
+    const response = await fetch('https://sonicbackend-production.up.railway.app/api/posts')
+    if (response.ok) {
+      allPosts.value = await response.json()
+    }
+  } catch (error) {
+    console.error('Fehler beim Laden der Forenbeiträge:', error)
+  }
+})
+
 const filteredPosts = computed(() => {
   let result = allPosts.value
 
-  // 1. Nach Kategorie filtern
   if (activeCategory.value !== 'Alle') {
     result = result.filter(p => p.tags.includes(activeCategory.value))
   }
 
-  // 2. Nach Suchbegriff filtern (Echtzeit!)
   if (searchQuery.value.trim() !== '') {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(post => 
@@ -99,7 +98,6 @@ const filteredPosts = computed(() => {
     )
   }
 
-  // 3. Nach Auswahl sortieren
   if (sortBy.value === 'votes') {
     return [...result].sort((a, b) => b.votes - a.votes)
   }
@@ -107,11 +105,9 @@ const filteredPosts = computed(() => {
     return [...result].sort((a, b) => b.comments - a.comments)
   }
   
-  // Wenn "Neu" gewählt ist, lassen wir die Standardreihenfolge
   return result
 })
 
-// Vote-Funktion
 const vote = (post, val) => {
   post.votes += val
 }
