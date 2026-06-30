@@ -63,6 +63,7 @@
 
 <script setup>
 import { ref, computed, inject, onMounted } from 'vue'
+import { API_URL } from '../config.js'
 
 const searchQuery = inject('searchQuery', ref(''))
 
@@ -74,7 +75,7 @@ const allPosts = ref([]) // Holt sich die Beiträge gleich live
 
 onMounted(async () => {
   try {
-    const response = await fetch('https://sonicbackend-production.up.railway.app/api/posts')
+    const response = await fetch(`${API_URL}/posts`)
     if (response.ok) {
       allPosts.value = await response.json()
     }
