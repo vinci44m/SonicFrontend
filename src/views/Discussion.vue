@@ -8,8 +8,24 @@
           <option value="new">Neu</option>
           <option value="comments">Meiste Kommentare</option>
         </select>
-        <a href="#" class="new-post-btn">+ Neue Diskussion</a>
+        <button @click="showForm = !showForm" class="new-post-btn">+ Neue Diskussion</button>
       </div>
+    </div>
+
+    <div v-if="showForm" class="create-post-form">
+      <h3>Neue Diskussion starten</h3>
+      <form @submit.prevent="createNewPost">
+        <div class="form-group">
+          <input v-model="newPostTitle" placeholder="Titel der Diskussion..." required />
+        </div>
+        <div class="form-group">
+          <textarea v-model="newPostContent" placeholder="Beschreibe dein Anliegen ausführlich..." rows="4" required></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="submit-btn">Diskussion veröffentlichen</button>
+          <button type="button" @click="showForm = false" class="cancel-btn">Abbrechen</button>
+        </div>
+      </form>
     </div>
 
     <div class="category-filter">
@@ -42,15 +58,16 @@
         </div>
         <div class="post-content">
           <a href="#" class="post-title">{{ post.title }}</a>
+          <p class="post-body-text">{{ post.content }}</p>
           <div class="post-meta">
             <span class="post-tag" v-for="tag in post.tags" :key="tag">
               {{ tag }}
             </span>
-            <span>Gepostet von @{{ post.author }}</span>
+            <span>Gepostet von @{{ post.user ? post.user.name : 'Unbekannt' }}</span>
             <span>•</span>
-            <span>{{ post.date }}</span>
+            <span>{{ new Date(post.created_at).toLocaleDateString('de-DE') }}</span>
           </div>
-          <div class="post-comments">💬 {{ post.comments }} Kommentare</div>
+          <div class="post-comments">💬 {{ post.comments ? post.comments.length : 0 }} Kommentare</div>
         </div>
       </article>
 
@@ -71,9 +88,12 @@ const categories = ['Allgemein', 'Prüfungen', 'Projektgruppen', 'JavaScript', '
 const activeCategory = ref('Alle')
 const sortBy = ref('votes')
 
-const allPosts = ref([]) // Holt sich die Beiträge gleich live
+const allPosts = ref([]) 
+const showForm = ref(false)
+const newPostTitle = ref('')
+const newPostContent = ref('')
 
-onMounted(async () => {
+const loadPosts = async () => {
   try {
     const response = await fetch(`${API_URL}/posts`)
     if (response.ok) {
@@ -82,39 +102,125 @@ onMounted(async () => {
   } catch (error) {
     console.error('Fehler beim Laden der Forenbeiträge:', error)
   }
+}
+
+onMounted(() => {
+  loadPosts()
 })
+
+// Sendet die neue Diskussion an das Backend
+const createNewPost = async () => {
+  try {
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch(`${API_URL}/posts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        title: newPostTitle.value,
+        content: newPostContent.value,
+        tags: ['Allgemein'] // Default-Tag, erweiterbar
+      })
+    })
+
+    if (response.ok) {
+      const savedPost = await response.json()
+      allPosts.value.unshift(savedPost) // Sofort live anzeigen
+      newPostTitle.value = ''
+      newPostContent.value = ''
+      showForm.value = false
+    } else {
+      alert("Fehler beim Erstellen. Bist du eingeloggt?")
+    }
+  } catch (error) {
+    console.error("Netzwerkfehler beim Posten:", error)
+  }
+}
 
 const filteredPosts = computed(() => {
   let result = allPosts.value
 
   if (activeCategory.value !== 'Alle') {
-    result = result.filter(p => p.tags.includes(activeCategory.value))
+    result = result.filter(p => p.tags && p.tags.includes(activeCategory.value))
   }
 
   if (searchQuery.value.trim() !== '') {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(post => 
       post.title.toLowerCase().includes(query) ||
-      post.author.toLowerCase().includes(query)
+      (post.user && post.user.name.toLowerCase().includes(query))
     )
   }
 
   if (sortBy.value === 'votes') {
     return [...result].sort((a, b) => b.votes - a.votes)
   }
-  if (sortBy.value === 'comments') {
-    return [...result].sort((a, b) => b.comments - a.comments)
-  }
   
   return result
 })
 
-const vote = (post, val) => {
-  post.votes += val
-}
+const vote = (post, val) => { post.votes += val }
 </script>
 
 <style scoped>
+/* Stylings für das neue Diskussions-Formular */
+.create-post-form {
+  background: #0f172a;
+  border: 1px solid #1a3a5c;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+.create-post-form h3 { margin-top: 0; color: #fff; }
+.form-group { margin-bottom: 12px; }
+.form-group input, .form-group textarea {
+  width: 100%;
+  background: #060f1a;
+  border: 1px solid #1a3a5c;
+  color: #fff;
+  padding: 10px;
+  border-radius: 6px;
+  outline: none;
+}
+.form-actions { 
+  display: flex; gap: 10px; 
+}
+.submit-btn { 
+  background: #1e90ff; 
+  color: white; 
+  border: none; 
+  padding: 8px 16px; 
+  border-radius: 6px; 
+  cursor: pointer; 
+  font-weight: bold; 
+}
+.cancel-btn { 
+  background: transparent; 
+  color: #64748b; 
+  border: 1px solid #1a3a5c; 
+  padding: 8px 16px; 
+  border-radius: 6px; 
+  cursor: pointer; 
+}
+.post-body-text { 
+  color: #cbd5e1; 
+  font-size: 0.95rem; 
+  margin: 8px 0; 
+}
+.new-post-btn { 
+  background: #1e90ff; 
+  color: #060f1a; 
+  border: none; 
+  padding: 6px 14px; 
+  border-radius: 6px; 
+  font-weight: bold; 
+  cursor: pointer; 
+  text-decoration: none; 
+}
+
 .category-filter {
   display: flex;
   gap: 8px;
