@@ -18,6 +18,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { API_URL } from '../config.js'
 
 const title = ref('')
 const videoFile = ref(null)
@@ -38,14 +39,22 @@ const uploadVideo = async () => {
   formData.append('video', videoFile.value)
 
   try {
-    const response = await fetch('https://sonicbackend-production.up.railway.app/api/videos', {
+    const token = localStorage.getItem('auth_token')
+
+    const response = await fetch(`${API_URL}/videos`, {
       method: 'POST',
+      headers: {
+        // Nötig, da Video-Upload eine geschützte Route ist (auth:sanctum)
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
       body: formData,
     })
 
     if (response.ok) {
       message.value = 'Erfolg! Das Video wurde hochgeladen.'
       title.value = ''
+    } else if (response.status === 401) {
+      message.value = 'Bitte zuerst einloggen.'
     } else {
       message.value = 'Fehler beim Hochladen.'
     }
@@ -64,7 +73,7 @@ const uploadVideo = async () => {
 }
 
 .upload-card {
-  background: #111b2b; /* Dunkles Design passend zu deinem Screenshot */
+  background: #111b2b;
   padding: 30px;
   border-radius: 8px;
   width: 100%;
@@ -99,7 +108,7 @@ input[type="file"] {
 button {
   width: 100%;
   padding: 12px;
-  background: #2563eb; /* Blau wie im Screenshot */
+  background: #2563eb;
   color: white;
   border: none;
   border-radius: 4px;

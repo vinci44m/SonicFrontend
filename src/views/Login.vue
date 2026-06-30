@@ -25,6 +25,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { API_URL } from '../config.js'
 
 const router = useRouter()
 const email = ref('')
@@ -35,8 +36,7 @@ const handleLogin = async () => {
   errorMessage.value = ''
 
   try {
-    // Da du Script Setup verwendest, rufen wir die API über die globale Eigenschaft auf:
-    const response = await fetch('https://sonicbackend-production.up.railway.app/api/login', {
+    const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -54,6 +54,10 @@ const handleLogin = async () => {
       errorMessage.value = data.error || 'Login fehlgeschlagen.'
       return
     }
+
+    // Token für spätere geschützte Requests speichern
+    localStorage.setItem('auth_token', data.token)
+    localStorage.setItem('auth_user', JSON.stringify(data.user))
 
     alert('Erfolg! Du bist eingeloggt.')
     router.push('/') // Zurück zur Startseite

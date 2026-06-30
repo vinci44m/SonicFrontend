@@ -49,6 +49,7 @@
 
 <script setup>
 import { ref, computed, inject, onMounted } from 'vue'
+import { API_URL } from '../config.js'
 
 const searchQuery = inject('searchQuery', ref(''))
 
@@ -57,17 +58,17 @@ const allVideos = ref([])
 const allPosts = ref([])
 const visibleCount = ref(4)
 
-// Holt die Daten live von Railway
+// Holt die Daten live vom Backend (config.js: lokal oder Railway)
 onMounted(async () => {
   try {
     // 1. Videos laden
-    const videoResponse = await fetch('https://sonicbackend-production.up.railway.app/api/videos')
+    const videoResponse = await fetch(`${API_URL}/videos`)
     if (videoResponse.ok) {
       allVideos.value = await videoResponse.json()
     }
-    
+
     // 2. Beiträge laden
-    const postsResponse = await fetch('https://sonicbackend-production.up.railway.app/api/posts')
+    const postsResponse = await fetch(`${API_URL}/posts`)
     if (postsResponse.ok) {
       allPosts.value = await postsResponse.json()
     }
@@ -101,7 +102,7 @@ const posts = computed(() => {
 const vote = async (post, val) => {
   post.votes += val
   // Optional: Schicke den neuen Vote per PUT/POST ans Backend
-  // await fetch(`https://sonicbackend-production.up.railway.app/api/posts/${post.id}/vote`, { method: 'POST', body: JSON.stringify({ vote: val }) })
+  // await fetch(`${API_URL}/posts/${post.id}/vote`, { method: 'POST', body: JSON.stringify({ vote: val }) })
 }
 </script>
 
